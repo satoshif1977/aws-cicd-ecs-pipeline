@@ -1,0 +1,29 @@
+# CDK
+cdk/node_modules/
+cdk/dist/
+cdk/cdk.out/
+cdk/*.js
+cdk/*.d.ts
+cdk/bin/*.js
+cdk/lib/*.js
+cdk/test/*.js
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Terraform（将来追加する場合）
+*.tfstate
+*.tfstate.backup
+.terraform/
