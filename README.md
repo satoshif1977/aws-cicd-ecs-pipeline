@@ -15,6 +15,8 @@ GitHub Actions + Amazon ECR + Amazon ECS Fargate による CI/CD パイプライ
 
 ## アーキテクチャ
 
+![アーキテクチャ構成図](docs/cicd-ecs-architecture.drawio.png)
+
 ```
 開発者
  │
