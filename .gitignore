@@ -18,6 +18,7 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+*.bkp
 
 # IDE
 .vscode/

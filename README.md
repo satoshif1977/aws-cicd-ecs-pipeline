@@ -65,11 +65,10 @@ GitHub Actions
 
 ```
 git push
- → actions/checkout
- → actions/setup-node (Node.js 20)
- → npm ci
- → npm run build  （TypeScript コンパイルチェック）
- → npm test       （Jest 32 テスト）
+ → [cdk-test]   actions/setup-node (Node.js 20)
+                → npm ci → npm run build → npm test（Jest 32件）
+ → [flask-test] actions/setup-python (Python 3.11)
+                → pip install → pytest test_app.py（14件）
 ```
 
 ### Deploy（deploy.yml）
@@ -127,6 +126,7 @@ aws-cicd-ecs-pipeline/
 │       └── deploy.yml      # Docker build → ECR push → ECS deploy
 ├── app/
 │   ├── app.py              # Flask サンプルアプリ（/health・/・/info）
+│   ├── test_app.py         # Flask ユニットテスト（pytest 14件）
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── cdk/
@@ -238,7 +238,8 @@ npm test
 |---|---|---|
 | `ecr-stack.test.ts` | 8 件 | リポジトリ作成・スキャン設定・ライフサイクルルール・削除ポリシー・Output |
 | `ecs-stack.test.ts` | 24 件 | VPC / クラスター / タスク定義（ポート・CPU・メモリ・環境変数）/ ALB / Logs / オートスケーリング / Output |
-| **合計** | **32 件** | |
+| `test_app.py` | 14 件 | `/health` / `/` / `/info` エンドポイントのステータスコード・レスポンスボディ・環境変数反映・404 |
+| **合計** | **46 件** | |
 
 ---
 
