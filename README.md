@@ -1,10 +1,12 @@
 # aws-cicd-ecs-pipeline
 
 ![CI](https://github.com/satoshif1977/aws-cicd-ecs-pipeline/actions/workflows/ci.yml/badge.svg)
+![Go Test](https://github.com/satoshif1977/aws-cicd-ecs-pipeline/actions/workflows/go-test.yml/badge.svg)
 ![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazon-aws&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![CDK](https://img.shields.io/badge/AWS_CDK-v2-FF9900?style=flat&logo=amazon-aws&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.22-00ADD8?style=flat&logo=go&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 ![Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-orange?logo=anthropic)
 
@@ -112,7 +114,8 @@ GitHub Actions 起動
 | オートスケーリング | Application Auto Scaling（CPU ベース） |
 | 監視 | Amazon CloudWatch Logs |
 | サンプルアプリ | Python 3.11 / Flask |
-| テスト | Jest + aws-cdk-lib/assertions |
+| デプロイ通知 Lambda | Go 1.22 / aws-lambda-go / aws-sdk-go-v2 |
+| テスト | Jest + aws-cdk-lib/assertions / pytest / Go testing |
 
 ---
 
@@ -122,8 +125,9 @@ GitHub Actions 起動
 aws-cicd-ecs-pipeline/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml          # CDK build & test（TypeScript + Jest）
-│       └── deploy.yml      # Docker build → ECR push → ECS deploy
+│       ├── ci.yml          # CDK build & test（TypeScript + Jest）+ Flask pytest
+│       ├── deploy.yml      # Docker build → ECR push → ECS deploy
+│       └── go-test.yml     # Go Lambda ユニットテスト（lambda_go/** 変更時）
 ├── app/
 │   ├── app.py              # Flask サンプルアプリ（/health・/・/info）
 │   ├── test_app.py         # Flask ユニットテスト（pytest 14件）
@@ -141,6 +145,11 @@ aws-cicd-ecs-pipeline/
 │   ├── cdk.json
 │   ├── package.json
 │   └── tsconfig.json
+├── lambda_go/
+│   └── deploy-notifier/
+│       ├── main.go         # ECS デプロイ完了 SNS 通知 Lambda（Go）
+│       ├── main_test.go    # ユニットテスト 4件（SNSPublisher インターフェース モック）
+│       └── go.mod          # Go 1.22 / aws-lambda-go / aws-sdk-go-v2
 ├── docs/
 ├── .gitignore
 ├── CHANGELOG.md
@@ -239,7 +248,8 @@ npm test
 | `ecr-stack.test.ts` | 8 件 | リポジトリ作成・スキャン設定・ライフサイクルルール・削除ポリシー・Output |
 | `ecs-stack.test.ts` | 24 件 | VPC / クラスター / タスク定義（ポート・CPU・メモリ・環境変数）/ ALB / Logs / オートスケーリング / Output |
 | `test_app.py` | 14 件 | `/health` / `/` / `/info` エンドポイントのステータスコード・レスポンスボディ・環境変数反映・404 |
-| **合計** | **46 件** | |
+| `main_test.go` | 4 件 | SNS 通知成功・ failure ステータス・SNS エラー伝播・DeployedAt デフォルト補完 |
+| **合計** | **50 件** | |
 
 ---
 
@@ -298,6 +308,7 @@ npm test
 - **ECS Fargate をプライベートサブネット**に配置し、ALB 経由のみでアクセス可能にする本番想定構成
 - **オートスケーリング**（CPU 70% / 最小 desiredCount・最大 ×4）を CDK で宣言的に定義
 - **`RemovalPolicy.RETAIN`** を ECR リポジトリに設定し、スタック削除時もイメージを保持
+- **Go Lambda（deploy-notifier）** を `SNSPublisher` インターフェースで設計し、テスト時は AWS 呼び出しなしでモックに差し替え可能。Go の標準 `testing` パッケージのみで 4件のユニットテストを実現
 
 ---
 

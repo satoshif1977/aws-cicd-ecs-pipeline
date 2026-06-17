@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0] - 2026-06-17
+
+### Added
+- Go Lambda（`lambda_go/deploy-notifier/`）: ECS デプロイ完了を SNS 通知する Lambda を Go で実装
+  - `SNSPublisher` インターフェースによるモック可能設計
+  - ユニットテスト 4 件（Success / FailureStatus / SNSError / DefaultTimestamp）
+- `go-test.yml`: `lambda_go/**` 変更時に `go test ./... -v` を自動実行する CI ワークフロー追加
+
 ## [0.2.0] - 2026-06-17
 
 ### Changed
