@@ -25,11 +25,11 @@ jobs:
     if: ${{ secrets.AWS_ROLE_ARN != '' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # ── AWS 認証（OIDC / IAM ロール）────────────────────────
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
