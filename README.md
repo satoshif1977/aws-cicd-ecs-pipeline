@@ -9,6 +9,8 @@
 ![Go](https://img.shields.io/badge/Go-1.22-00ADD8?style=flat&logo=go&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 ![Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-orange?logo=anthropic)
+![Claude Cowork](https://img.shields.io/badge/Daily%20Use-Claude%20Cowork-blueviolet?logo=anthropic)
+![Claude Skills](https://img.shields.io/badge/Custom-Skills%20Configured-green?logo=anthropic)
 
 GitHub Actions + Amazon ECR + Amazon ECS Fargate による CI/CD パイプラインの実装。
 インフラは **AWS CDK（TypeScript）** で管理し、コードプッシュをトリガーに自動でコンテナビルド・デプロイまで実行する。
