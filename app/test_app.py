@@ -12,7 +12,6 @@ import pytest
 
 from app import app as flask_app
 
-
 # ── フィクスチャ ──────────────────────────────────────────────
 
 
@@ -95,6 +94,7 @@ class TestInfoEndpoint:
         with patch.dict("os.environ", {"AWS_REGION": "us-east-1"}):
             import importlib
             import app as app_module
+
             importlib.reload(app_module)
             c = app_module.app.test_client()
             response = c.get("/info")
@@ -104,9 +104,11 @@ class TestInfoEndpoint:
     def test_regionのデフォルトがap_northeast_1(self, client):
         with patch.dict("os.environ", {}, clear=False):
             import os
+
             os.environ.pop("AWS_REGION", None)
             import importlib
             import app as app_module
+
             importlib.reload(app_module)
             c = app_module.app.test_client()
             response = c.get("/info")

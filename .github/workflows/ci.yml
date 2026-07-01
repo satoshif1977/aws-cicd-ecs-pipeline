@@ -35,19 +35,25 @@ jobs:
   flask-test:
     name: Flask アプリ ユニットテスト
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest
+        run: pip install -r app/requirements.txt pytest ruff black
 
-      - name: Run Flask tests
-        run: pytest test_app.py -v
+      - name: ruff（構文チェック）
+        run: ruff check app/
+
+      - name: black（フォーマットチェック）
+        run: black --check app/
+
+      - name: pytest
+        run: pytest app/test_app.py -v --tb=short

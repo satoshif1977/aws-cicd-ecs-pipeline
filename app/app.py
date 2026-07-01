@@ -38,22 +38,32 @@ def health() -> tuple:
 def index() -> tuple:
     """メインエンドポイント"""
     logger.info("/ へのリクエストを受信")
-    return jsonify({
-        "message": "Hello from ECS Fargate!",
-        "environment": ENVIRONMENT,
-    }), 200
+    return (
+        jsonify(
+            {
+                "message": "Hello from ECS Fargate!",
+                "environment": ENVIRONMENT,
+            }
+        ),
+        200,
+    )
 
 
 @app.route("/info")
 def info() -> tuple:
     """アプリ情報エンドポイント"""
-    return jsonify({
-        "app": "aws-cicd-ecs-pipeline",
-        "runtime": "Python 3.11 / Flask",
-        "infrastructure": "ECS Fargate + ALB（CDK TypeScript）",
-        "ci_cd": "GitHub Actions → ECR → ECS",
-        "region": os.environ.get("AWS_REGION", "ap-northeast-1"),
-    }), 200
+    return (
+        jsonify(
+            {
+                "app": "aws-cicd-ecs-pipeline",
+                "runtime": "Python 3.11 / Flask",
+                "infrastructure": "ECS Fargate + ALB（CDK TypeScript）",
+                "ci_cd": "GitHub Actions → ECR → ECS",
+                "region": os.environ.get("AWS_REGION", "ap-northeast-1"),
+            }
+        ),
+        200,
+    )
 
 
 # ── エントリーポイント ────────────────────────────────────────
