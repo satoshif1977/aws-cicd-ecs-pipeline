@@ -116,6 +116,76 @@ class TestInfoEndpoint:
             assert data["region"] == "ap-northeast-1"
 
 
+# ── HTTP メソッド制限 ─────────────────────────────────────────
+
+
+class TestMethodNotAllowed:
+    def test_healthへのPOSTは405を返す(self, client):
+        response = client.post("/health")
+        assert response.status_code == 405
+
+    def test_indexへのPOSTは405を返す(self, client):
+        response = client.post("/")
+        assert response.status_code == 405
+
+    def test_infoへのPOSTは405を返す(self, client):
+        response = client.post("/info")
+        assert response.status_code == 405
+
+    def test_healthへのDELETEは405を返す(self, client):
+        response = client.delete("/health")
+        assert response.status_code == 405
+
+
+# ── レスポンス Content-Type ────────────────────────────────────
+
+
+class TestContentType:
+    def test_indexのContent_TypeがJSON(self, client):
+        response = client.get("/")
+        assert "application/json" in response.content_type
+
+    def test_infoのContent_TypeがJSON(self, client):
+        response = client.get("/info")
+        assert "application/json" in response.content_type
+
+
+# ── /info フィールド詳細 ───────────────────────────────────────
+
+
+class TestInfoEndpointDetails:
+    def test_infrastructureにECSが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "ECS" in data["infrastructure"]
+
+    def test_ci_cdにGitHubが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "GitHub" in data["ci_cd"]
+
+    def test_runtimeにPythonが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "Python" in data["runtime"]
+
+
+# ── レスポンスボディ詳細 ──────────────────────────────────────
+
+
+class TestResponseBody:
+    def test_healthのレスポンスはstatusキーのみ含む(self, client):
+        response = client.get("/health")
+        data = json.loads(response.data)
+        assert list(data.keys()) == ["status"]
+
+    def test_indexのレスポンスはmessageとenvironmentを含む(self, client):
+        response = client.get("/")
+        data = json.loads(response.data)
+        assert "message" in data
+        assert "environment" in data
+
+
 # ── 存在しないルート ──────────────────────────────────────────
 
 
