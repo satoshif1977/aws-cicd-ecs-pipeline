@@ -193,3 +193,73 @@ class TestNotFound:
     def test_存在しないパスは404を返す(self, client):
         response = client.get("/nonexistent")
         assert response.status_code == 404
+
+    def test_深いパスも404を返す(self, client):
+        response = client.get("/api/v1/unknown")
+        assert response.status_code == 404
+
+
+# ── HTTP メソッド制限（PUT/PATCH）────────────────────────────
+
+
+class TestPutPatchNotAllowed:
+    def test_healthへのPUTは405を返す(self, client):
+        response = client.put("/health")
+        assert response.status_code == 405
+
+    def test_indexへのPUTは405を返す(self, client):
+        response = client.put("/")
+        assert response.status_code == 405
+
+    def test_infoへのPATCHは405を返す(self, client):
+        response = client.patch("/info")
+        assert response.status_code == 405
+
+    def test_healthへのPATCHは405を返す(self, client):
+        response = client.patch("/health")
+        assert response.status_code == 405
+
+
+# ── /info フィールド内容詳細 ───────────────────────────────────
+
+
+class TestInfoFieldValues:
+    def test_infrastructureにALBが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "ALB" in data["infrastructure"]
+
+    def test_ci_cdにECRが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "ECR" in data["ci_cd"]
+
+    def test_infrastructureにCDKが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "CDK" in data["infrastructure"]
+
+
+# ── レスポンス構造検証 ────────────────────────────────────────
+
+
+class TestResponseStructure:
+    def test_indexのキー数は2つ(self, client):
+        response = client.get("/")
+        data = json.loads(response.data)
+        assert len(data.keys()) == 2
+
+    def test_infoのキー数は5つ(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert len(data.keys()) == 5
+
+    def test_environmentはstr型(self, client):
+        response = client.get("/")
+        data = json.loads(response.data)
+        assert isinstance(data["environment"], str)
+
+    def test_messageはstr型(self, client):
+        response = client.get("/")
+        data = json.loads(response.data)
+        assert isinstance(data["message"], str)
