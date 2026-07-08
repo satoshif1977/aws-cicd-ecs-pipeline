@@ -5,6 +5,7 @@ import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
+import { NagSuppressions } from 'cdk-nag';
 
 // ── Props ────────────────────────────────────────────────────
 
@@ -130,5 +131,29 @@ export class EcsStack extends cdk.Stack {
       value: this.cluster.clusterName,
       description: 'ECS クラスター名',
     });
+
+    // ── cdk-nag suppressions（dev 環境の意図的な省略） ────────────
+    NagSuppressions.addStackSuppressions(this, [
+      {
+        id: 'AwsSolutions-VPC7',
+        reason: 'dev 環境のため VPC Flow Logs は省略。本番では CloudWatch Logs への Flow Log を有効化すること。',
+      },
+      {
+        id: 'AwsSolutions-ELB2',
+        reason: 'dev 環境のため ALB アクセスログは省略。本番では S3 バケットへのアクセスログを有効化すること。',
+      },
+      {
+        id: 'AwsSolutions-EC23',
+        reason: 'ALB の HTTP(80) はインターネット公開が目的のため 0.0.0.0/0 を許可。意図的な設定。',
+      },
+      {
+        id: 'AwsSolutions-ECS2',
+        reason: 'PORT 環境変数はポート番号のみで機密情報を含まない。本番では Secrets Manager / SSM Parameter Store への移行を検討すること。',
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'CDK ApplicationLoadBalancedFargateService が自動生成する ECS タスク実行ロールのワイルドカード権限。ECR イメージ取得・CloudWatch Logs 書き込みに必要な標準パターン。',
+      },
+    ]);
   }
 }

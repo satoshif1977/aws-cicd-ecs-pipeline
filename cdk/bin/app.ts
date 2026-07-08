@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
+import { Aspects } from 'aws-cdk-lib';
+import { AwsSolutionsChecks } from 'cdk-nag';
 import { EcrStack } from '../lib/ecr-stack';
 import { EcsStack } from '../lib/ecs-stack';
 
@@ -25,7 +27,7 @@ const ecrStack = new EcrStack(app, 'CicdEcsEcrStack', {
 });
 
 // ── ECS スタック（コンテナ実行基盤）────────────────────────
-new EcsStack(app, 'CicdEcsAppStack', {
+const ecsStack = new EcsStack(app, 'CicdEcsAppStack', {
   env,
   tags,
   repository: ecrStack.repository,
@@ -33,5 +35,8 @@ new EcsStack(app, 'CicdEcsAppStack', {
   cpu: 256,
   memoryLimitMiB: 512,
 });
+
+Aspects.of(ecrStack).add(new AwsSolutionsChecks({ verbose: true }));
+Aspects.of(ecsStack).add(new AwsSolutionsChecks({ verbose: true }));
 
 app.synth();
