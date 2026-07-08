@@ -11,7 +11,9 @@
     "declarationMap": true,
     "inlineSourceMap": true,
     "inlineSources": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["jest", "node"]
   },
   "include": ["bin/**/*", "lib/**/*", "test/**/*"],
   "exclude": ["node_modules", "cdk.out", "dist"]
