@@ -14,7 +14,7 @@
     "aws-cdk": "^2.173.4",
     "jest": "^30.4.2",
     "ts-jest": "^29.2.5",
-    "typescript": "~5.4.0"
+    "typescript": "~6.0.3"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.261.0",
