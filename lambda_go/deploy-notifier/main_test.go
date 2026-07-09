@@ -371,3 +371,163 @@ func TestHandler_DeployedAtPreserved(t *testing.T) {
 		t.Errorf("message should contain the specified DeployedAt, got: %s", captured)
 	}
 }
+
+// ── メッセージ フォーマット詳細 ───────────────────────────────
+
+func TestHandler_MessageContainsStatus(t *testing.T) {
+	var captured string
+	mock := &mockSNS{
+		publishFunc: func(_ context.Context, input *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+			captured = aws.ToString(input.Message)
+			return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+		},
+	}
+	handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+	_, _ = handler(context.Background(), DeployEvent{Service: "svc", Status: "success"})
+	if !strings.Contains(captured, "success") {
+		t.Errorf("message should contain status string, got: %s", captured)
+	}
+}
+
+func TestHandler_SubjectHasECSPrefix(t *testing.T) {
+	var captured string
+	mock := &mockSNS{
+		publishFunc: func(_ context.Context, input *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+			captured = aws.ToString(input.Subject)
+			return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+		},
+	}
+	handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+	_, _ = handler(context.Background(), DeployEvent{Service: "svc", Status: "success"})
+	if !strings.HasPrefix(captured, "[ECS]") {
+		t.Errorf("subject should start with [ECS], got: %s", captured)
+	}
+}
+
+func TestHandler_AllFieldsInMessage(t *testing.T) {
+	// 全フィールドが1つのメッセージに含まれること
+	var captured string
+	mock := &mockSNS{
+		publishFunc: func(_ context.Context, input *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+			captured = aws.ToString(input.Message)
+			return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+		},
+	}
+	handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+	_, _ = handler(context.Background(), DeployEvent{
+		Service:        "all-fields-svc",
+		Cluster:        "all-fields-cluster",
+		TaskDefinition: "all-fields-task:7",
+		ImageTag:       "tag-abc",
+		Status:         "success",
+		DeployedAt:     "2026-07-09T00:00:00Z",
+	})
+	for _, want := range []string{"all-fields-svc", "all-fields-cluster", "all-fields-task:7", "tag-abc", "2026-07-09T00:00:00Z"} {
+		if !strings.Contains(captured, want) {
+			t.Errorf("message should contain %q, got: %s", want, captured)
+		}
+	}
+}
+
+func TestHandler_SNSPublishCalledOnce(t *testing.T) {
+	// 1 イベントにつき SNS Publish は 1 回だけ呼ばれること
+	callCount := 0
+	mock := &mockSNS{
+		publishFunc: func(_ context.Context, _ *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+			callCount++
+			return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+		},
+	}
+	handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+	_, _ = handler(context.Background(), DeployEvent{Service: "svc", Status: "success"})
+	if callCount != 1 {
+		t.Errorf("expected SNS Publish to be called once, got %d", callCount)
+	}
+}
+
+func TestHandler_TableDrivenEvents(t *testing.T) {
+	// 多様なイベントパターンでもエラーにならないこと
+	cases := []struct {
+		name  string
+		event DeployEvent
+	}{
+		{"success-all-fields", DeployEvent{Service: "api", Cluster: "main", TaskDefinition: "api:1", ImageTag: "sha1", Status: "success"}},
+		{"failure-minimal", DeployEvent{Service: "worker", Status: "failure"}},
+		{"empty-cluster", DeployEvent{Service: "svc", Status: "success", Cluster: ""}},
+		{"empty-image-tag", DeployEvent{Service: "svc", Status: "success", ImageTag: ""}},
+		{"empty-task-def", DeployEvent{Service: "svc", Status: "success", TaskDefinition: ""}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockSNS{
+				publishFunc: func(_ context.Context, _ *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+					return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+				},
+			}
+			handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+			_, err := handler(context.Background(), tc.event)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestHandler_MessageContainsClusterLabel(t *testing.T) {
+	var captured string
+	mock := &mockSNS{
+		publishFunc: func(_ context.Context, input *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+			captured = aws.ToString(input.Message)
+			return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+		},
+	}
+	handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+	_, _ = handler(context.Background(), DeployEvent{Service: "svc", Cluster: "prod", Status: "success"})
+	if !strings.Contains(captured, "Cluster:") {
+		t.Errorf("message should contain 'Cluster:' label, got: %s", captured)
+	}
+}
+
+func TestHandler_MessageContainsNewline(t *testing.T) {
+	var captured string
+	mock := &mockSNS{
+		publishFunc: func(_ context.Context, input *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+			captured = aws.ToString(input.Message)
+			return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+		},
+	}
+	handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+	_, _ = handler(context.Background(), DeployEvent{Service: "svc", Status: "success"})
+	if !strings.Contains(captured, "\n") {
+		t.Errorf("message should contain newlines for readability, got: %s", captured)
+	}
+}
+
+func TestHandler_TableDrivenSubjectFormat(t *testing.T) {
+	// subject のフォーマット "[ECS] Deploy {status} - {service}" を全パターン検証
+	cases := []struct {
+		service string
+		status  string
+		want    string
+	}{
+		{"web-api", "success", "[ECS] Deploy success - web-api"},
+		{"payment", "failure", "[ECS] Deploy failure - payment"},
+		{"worker", "unknown", "[ECS] Deploy unknown - worker"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.service+"-"+tc.status, func(t *testing.T) {
+			var captured string
+			mock := &mockSNS{
+				publishFunc: func(_ context.Context, input *sns.PublishInput, _ ...func(*sns.Options)) (*sns.PublishOutput, error) {
+					captured = aws.ToString(input.Subject)
+					return &sns.PublishOutput{MessageId: aws.String("x")}, nil
+				},
+			}
+			handler := Handler(mock, "arn:aws:sns:ap-northeast-1:123456789012:test")
+			_, _ = handler(context.Background(), DeployEvent{Service: tc.service, Status: tc.status})
+			if captured != tc.want {
+				t.Errorf("expected subject=%q, got %q", tc.want, captured)
+			}
+		})
+	}
+}
