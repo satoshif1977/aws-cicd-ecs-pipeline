@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased]
+
+## [0.4.0] - 2026-07-10
+
+### Added
+- `cdk/` CDK スタックに `cdk-nag`（AwsSolutionsChecks）導入・5 ルール抑制設定
+- `CONTRIBUTING.md` / `SECURITY.md` 追加
+- `.github/dependabot.yml`: pip / npm / gomod / github-actions を対象に追加
+- TypeScript ユニットテスト拡充: `ecr-stack-detail` 5 件 → 15 件
+- Go ユニットテスト拡充: `deploy-notifier` 18 件 → 27 件
+
+### Fixed
+- `lambda_go/go.mod`: Go バージョン 1.21 → 1.24 に更新（`aws-lambda-go` v1.54 対応）
+
+### Changed
+- CI: Node.js 20 → 22・`actions/setup-node` v4 → v6・`actions/checkout` v5 → v7
+- Dependabot: `aws-lambda-go` v1.47 → v1.54・`TypeScript` v5 → v6・`@types/node` v26
+
 ## [0.3.0] - 2026-06-17
 
 ### Added
