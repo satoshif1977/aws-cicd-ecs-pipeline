@@ -1,0 +1,47 @@
+name: TypeScript Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cdk/**'
+      - '.github/workflows/ts-test.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cdk/**'
+      - '.github/workflows/ts-test.yml'
+
+jobs:
+  test:
+    name: Jest（CDK Assertions）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cdk
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: cdk/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript build check
+        run: npm run build
+
+      - name: Jest（ユニットテスト）
+        run: npm test -- --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: cdk/coverage
+          flags: typescript
+          fail_ci_if_error: false

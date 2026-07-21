@@ -1,6 +1,7 @@
 # aws-cicd-ecs-pipeline
 
 ![CI](https://github.com/satoshif1977/aws-cicd-ecs-pipeline/actions/workflows/ci.yml/badge.svg)
+![TypeScript Test](https://github.com/satoshif1977/aws-cicd-ecs-pipeline/actions/workflows/ts-test.yml/badge.svg)
 ![Go Test](https://github.com/satoshif1977/aws-cicd-ecs-pipeline/actions/workflows/go-test.yml/badge.svg)
 [![codecov](https://codecov.io/gh/satoshif1977/aws-cicd-ecs-pipeline/graph/badge.svg)](https://codecov.io/gh/satoshif1977/aws-cicd-ecs-pipeline)
 ![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazon-aws&logoColor=white)
