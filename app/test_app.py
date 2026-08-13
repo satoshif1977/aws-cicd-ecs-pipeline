@@ -93,6 +93,7 @@ class TestInfoEndpoint:
     def test_AWS_REGION環境変数がregionに反映される(self, client):
         with patch.dict("os.environ", {"AWS_REGION": "us-east-1"}):
             import importlib
+
             import app as app_module
 
             importlib.reload(app_module)
@@ -107,6 +108,7 @@ class TestInfoEndpoint:
 
             os.environ.pop("AWS_REGION", None)
             import importlib
+
             import app as app_module
 
             importlib.reload(app_module)
