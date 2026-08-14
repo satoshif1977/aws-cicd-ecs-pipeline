@@ -93,6 +93,7 @@ class TestInfoEndpoint:
     def test_AWS_REGION環境変数がregionに反映される(self, client):
         with patch.dict("os.environ", {"AWS_REGION": "us-east-1"}):
             import importlib
+
             import app as app_module
 
             importlib.reload(app_module)
@@ -107,6 +108,7 @@ class TestInfoEndpoint:
 
             os.environ.pop("AWS_REGION", None)
             import importlib
+
             import app as app_module
 
             importlib.reload(app_module)
@@ -263,3 +265,205 @@ class TestResponseStructure:
         response = client.get("/")
         data = json.loads(response.data)
         assert isinstance(data["message"], str)
+
+
+# ── /health 詳細 ──────────────────────────────────────────────
+
+
+class TestHealthEndpointDetail:
+    def test_statusフィールドがstr型(self, client):
+        response = client.get("/health")
+        data = json.loads(response.data)
+        assert isinstance(data["status"], str)
+
+    def test_HEADリクエストが200を返す(self, client):
+        response = client.head("/health")
+        assert response.status_code == 200
+
+    def test_HEADレスポンスのbodyが空(self, client):
+        response = client.head("/health")
+        assert response.data == b""
+
+    def test_レスポンスボディが空でない(self, client):
+        response = client.get("/health")
+        assert len(response.data) > 0
+
+    def test_レスポンスがJSONデコード可能(self, client):
+        response = client.get("/health")
+        data = json.loads(response.data)
+        assert data is not None
+
+
+# ── / ENVIRONMENT バリアント ──────────────────────────────────
+
+
+class TestIndexEndpointVariants:
+    def test_ENVIRONMENT_prodでprodが返る(self, client):
+        with patch("app.ENVIRONMENT", "prod"):
+            response = client.get("/")
+            data = json.loads(response.data)
+            assert data["environment"] == "prod"
+
+    def test_ENVIRONMENT_stagingでstagingが返る(self, client):
+        with patch("app.ENVIRONMENT", "staging"):
+            response = client.get("/")
+            data = json.loads(response.data)
+            assert data["environment"] == "staging"
+
+    def test_ENVIRONMENT_testでtestが返る(self, client):
+        with patch("app.ENVIRONMENT", "test"):
+            response = client.get("/")
+            data = json.loads(response.data)
+            assert data["environment"] == "test"
+
+    def test_environmentフィールドが空でない(self, client):
+        response = client.get("/")
+        data = json.loads(response.data)
+        assert data["environment"] != ""
+
+    def test_クエリパラメータ付きでも200を返す(self, client):
+        response = client.get("/?debug=1")
+        assert response.status_code == 200
+
+
+# ── /info フィールド型検証 ─────────────────────────────────────
+
+
+class TestInfoFieldTypes:
+    def test_appがstr型(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert isinstance(data["app"], str)
+
+    def test_runtimeがstr型(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert isinstance(data["runtime"], str)
+
+    def test_infrastructureがstr型(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert isinstance(data["infrastructure"], str)
+
+    def test_ci_cdがstr型(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert isinstance(data["ci_cd"], str)
+
+    def test_regionがstr型(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert isinstance(data["region"], str)
+
+
+# ── /info フィールド値拡張 ────────────────────────────────────
+
+
+class TestInfoFieldValuesExtended:
+    def test_infrastructureにFargateが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "Fargate" in data["infrastructure"]
+
+    def test_runtimeに3_11が含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "3.11" in data["runtime"]
+
+    def test_ci_cdにECSが含まれる(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert "ECS" in data["ci_cd"]
+
+    def test_appフィールドが空でない(self, client):
+        response = client.get("/info")
+        data = json.loads(response.data)
+        assert data["app"] != ""
+
+
+# ── HTTP メソッド制限（DELETE/PATCH/PUT 拡張）────────────────
+
+
+class TestMethodNotAllowedExtended:
+    def test_indexへのDELETEは405を返す(self, client):
+        response = client.delete("/")
+        assert response.status_code == 405
+
+    def test_infoへのDELETEは405を返す(self, client):
+        response = client.delete("/info")
+        assert response.status_code == 405
+
+    def test_indexへのPATCHは405を返す(self, client):
+        response = client.patch("/")
+        assert response.status_code == 405
+
+    def test_infoへのPUTは405を返す(self, client):
+        response = client.put("/info")
+        assert response.status_code == 405
+
+
+# ── 存在しないルート（拡張）──────────────────────────────────
+
+
+class TestNotFoundExtended:
+    def test_healthcheckパスは404を返す(self, client):
+        response = client.get("/healthcheck")
+        assert response.status_code == 404
+
+    def test_apiパスは404を返す(self, client):
+        response = client.get("/api")
+        assert response.status_code == 404
+
+    def test_infoのサブパスは404を返す(self, client):
+        response = client.get("/info/extra")
+        assert response.status_code == 404
+
+
+# ── クエリパラメータ付きリクエスト ───────────────────────────
+
+
+class TestQueryString:
+    def test_healthへのクエリパラメータ付きGETが200を返す(self, client):
+        response = client.get("/health?debug=1")
+        assert response.status_code == 200
+
+    def test_infoへのクエリパラメータ付きGETが200を返す(self, client):
+        response = client.get("/info?format=json")
+        assert response.status_code == 200
+
+    def test_クエリパラメータはstatusに影響しない(self, client):
+        response = client.get("/health?foo=bar")
+        data = json.loads(response.data)
+        assert data["status"] == "ok"
+
+
+# ── HEAD リクエスト ───────────────────────────────────────────
+
+
+class TestHEADRequests:
+    def test_indexへのHEADが200を返す(self, client):
+        response = client.head("/")
+        assert response.status_code == 200
+
+    def test_infoへのHEADが200を返す(self, client):
+        response = client.head("/info")
+        assert response.status_code == 200
+
+    def test_indexへのHEADのbodyが空(self, client):
+        response = client.head("/")
+        assert response.data == b""
+
+
+# ── / レスポンス詳細 ──────────────────────────────────────────
+
+
+class TestIndexResponseDetail:
+    def test_messageにFargateが含まれる(self, client):
+        response = client.get("/")
+        data = json.loads(response.data)
+        assert "Fargate" in data["message"]
+
+    def test_environmentはstr型(self, client):
+        response = client.get("/")
+        data = json.loads(response.data)
+        assert isinstance(data["environment"], str)
