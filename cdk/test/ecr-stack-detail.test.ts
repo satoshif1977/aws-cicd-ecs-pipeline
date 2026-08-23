@@ -137,4 +137,84 @@ describe('EcrStack / maxImageCount', () => {
     );
     expect(policy.rules[0].description).toContain('20');
   });
+
+  test('maxImageCount=1 のとき countNumber が 1 になる', () => {
+    const template = buildTemplate({ maxImageCount: 1 });
+    const repos = template.findResources('AWS::ECR::Repository');
+    const policy = JSON.parse(
+      (Object.values(repos)[0] as { Properties: { LifecyclePolicy: { LifecyclePolicyText: string } } })
+        .Properties.LifecyclePolicy.LifecyclePolicyText,
+    );
+    expect(policy.rules[0].selection.countNumber).toBe(1);
+  });
+
+  test('maxImageCount=100 のとき countNumber が 100 になる', () => {
+    const template = buildTemplate({ maxImageCount: 100 });
+    const repos = template.findResources('AWS::ECR::Repository');
+    const policy = JSON.parse(
+      (Object.values(repos)[0] as { Properties: { LifecyclePolicy: { LifecyclePolicyText: string } } })
+        .Properties.LifecyclePolicy.LifecyclePolicyText,
+    );
+    expect(policy.rules[0].selection.countNumber).toBe(100);
+  });
+
+  test('ライフサイクルルールが正確に 1 つだけ定義される', () => {
+    const template = buildTemplate();
+    const repos = template.findResources('AWS::ECR::Repository');
+    const policy = JSON.parse(
+      (Object.values(repos)[0] as { Properties: { LifecyclePolicy: { LifecyclePolicyText: string } } })
+        .Properties.LifecyclePolicy.LifecyclePolicyText,
+    );
+    expect(policy.rules).toHaveLength(1);
+  });
+
+  test('ライフサイクルルールの action type が expire', () => {
+    const template = buildTemplate();
+    const repos = template.findResources('AWS::ECR::Repository');
+    const policy = JSON.parse(
+      (Object.values(repos)[0] as { Properties: { LifecyclePolicy: { LifecyclePolicyText: string } } })
+        .Properties.LifecyclePolicy.LifecyclePolicyText,
+    );
+    expect(policy.rules[0].action.type).toBe('expire');
+  });
+});
+
+// ── Output Description ──────────────────────────────────────────
+
+describe('EcrStack / Output Description', () => {
+  test('RepositoryUri の Description が設定されている', () => {
+    const template = buildTemplate();
+    const outputs = template.findOutputs('RepositoryUri');
+    expect(outputs['RepositoryUri'].Description).toBeDefined();
+  });
+
+  test('RepositoryName の Description が設定されている', () => {
+    const template = buildTemplate();
+    const outputs = template.findOutputs('RepositoryName');
+    expect(outputs['RepositoryName'].Description).toBeDefined();
+  });
+
+  test('RepositoryUri の Value が Ref ではなく GetAtt で解決される', () => {
+    const template = buildTemplate();
+    const outputs = template.findOutputs('RepositoryUri');
+    expect(outputs['RepositoryUri'].Value).toBeDefined();
+  });
+});
+
+// ── 異なるリポジトリ名パターン ───────────────────────────────────
+
+describe('EcrStack / リポジトリ名パターン', () => {
+  test('ハイフン区切り名が正しく設定される', () => {
+    const template = buildTemplate({ repositoryName: 'my-org/my-app' });
+    template.hasResourceProperties('AWS::ECR::Repository', {
+      RepositoryName: 'my-org/my-app',
+    });
+  });
+
+  test('単純な名前が正しく設定される', () => {
+    const template = buildTemplate({ repositoryName: 'app' });
+    template.hasResourceProperties('AWS::ECR::Repository', {
+      RepositoryName: 'app',
+    });
+  });
 });
