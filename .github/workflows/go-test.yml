@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - "lambda_go/**"
+      - ".github/workflows/go-test.yml"
   pull_request:
     paths:
       - "lambda_go/**"
+      - ".github/workflows/go-test.yml"
 
 jobs:
   test:
