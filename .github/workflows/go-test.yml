@@ -19,6 +19,24 @@ jobs:
         with:
           go-version-file: lambda_go/deploy-notifier/go.mod
           cache-dependency-path: lambda_go/deploy-notifier/go.sum
+      # ── フォーマット・静的解析 ────────────────────────────────
+      # gofmt 未整形のまま main に入るのを防ぐ。
+      # Windows 環境では作業ツリーが CRLF になり gofmt -l が誤検知するため、
+      # 判定は LF で扱える CI 側（Linux）に寄せるのが確実。
+      - name: gofmt（フォーマットチェック）
+        working-directory: lambda_go/deploy-notifier
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "gofmt 未整形のファイルがあります:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet（静的解析）
+        working-directory: lambda_go/deploy-notifier
+        run: go vet ./...
+
       - name: Run tests
         working-directory: lambda_go/deploy-notifier
         run: go test ./... -v -coverprofile=coverage.out -covermode=atomic
