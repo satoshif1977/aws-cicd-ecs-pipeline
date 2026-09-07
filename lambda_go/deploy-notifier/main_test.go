@@ -244,7 +244,7 @@ func TestHandler_FailureEmoji(t *testing.T) {
 
 func TestHandler_TableDrivenStatusEmoji(t *testing.T) {
 	cases := []struct {
-		status       string
+		status        string
 		expectedEmoji string
 	}{
 		{"success", "✅"},
