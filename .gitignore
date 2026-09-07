@@ -28,3 +28,8 @@ Thumbs.db
 *.tfstate
 *.tfstate.backup
 .terraform/
+
+# CDK のコンテキストキャッシュ
+# AWS の一般的な推奨はコミットだが、キーに AWS アカウント ID が
+# 含まれるため公開リポジトリでは追跡しない
+cdk.context.json
