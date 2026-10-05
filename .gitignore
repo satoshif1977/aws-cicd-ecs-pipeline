@@ -15,6 +15,10 @@ __pycache__/
 venv/
 .env
 
+# Go ビルド成果物・カバレッジ
+lambda_go/**/*.exe
+lambda_go/**/coverage.out
+
 # OS
 .DS_Store
 Thumbs.db

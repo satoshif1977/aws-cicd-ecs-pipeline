@@ -8,6 +8,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -15,6 +16,16 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 )
+
+// ── リトライ / ログ ───────────────────────────────────────────
+
+// RetryOperation はリトライのログ・計測に使う操作名。
+const RetryOperation = "Publish"
+
+// retrier は SNS Publish に使うリトライ実行器（retry.go を参照）。
+// 値型なので、フックを差すときは呼び出しごとにコピーする。
+// テストからは Sleep / Config を差し替えて実待機ゼロにできる。
+var retrier = NewRetrier()
 
 // ── インターフェース ───────────────────────────────────────────
 
@@ -44,7 +55,18 @@ type NotifyResult struct {
 // ── ハンドラー ────────────────────────────────────────────────
 
 // Handler は DeployEvent を受け取り SNS へ通知する。
+//
+// logger が nil の場合は環境変数から既定のロガーを組み立てる
+// （既存の呼び出し側を壊さないため、引数は増やさず内部で補う）。
 func Handler(publisher SNSPublisher, topicArn string) func(ctx context.Context, event DeployEvent) (NotifyResult, error) {
+	return HandlerWithLogger(publisher, topicArn, nil)
+}
+
+// HandlerWithLogger は Handler にロガーを明示できる版。
+func HandlerWithLogger(publisher SNSPublisher, topicArn string, logger *slog.Logger) func(ctx context.Context, event DeployEvent) (NotifyResult, error) {
+	if logger == nil {
+		logger = NewLoggerFromEnv(LoggerOptions{})
+	}
 	return func(ctx context.Context, event DeployEvent) (NotifyResult, error) {
 		if event.DeployedAt == "" {
 			event.DeployedAt = time.Now().UTC().Format(time.RFC3339)
@@ -68,14 +90,34 @@ func Handler(publisher SNSPublisher, topicArn string) func(ctx context.Context, 
 
 		subject := fmt.Sprintf("[ECS] Deploy %s - %s", event.Status, event.Service)
 
-		out, err := publisher.Publish(ctx, &sns.PublishInput{
-			TopicArn: aws.String(topicArn),
-			Subject:  aws.String(subject),
-			Message:  aws.String(message),
+		// リトライ層へログフックを差し込む（Retrier は値型なのでコピーしてから設定）
+		r := retrier
+		r.OnRetry = RetryLogHook(logger, RetryOperation)
+
+		out, err := RetryValue(ctx, r, RetryOperation, func(c context.Context) (*sns.PublishOutput, error) {
+			return publisher.Publish(c, &sns.PublishInput{
+				TopicArn: aws.String(topicArn),
+				Subject:  aws.String(subject),
+				Message:  aws.String(message),
+			})
 		})
 		if err != nil {
+			logger.Error("SNS への通知に失敗しました",
+				"operation", RetryOperation,
+				"service", event.Service,
+				"status", event.Status,
+				"error", err,
+			)
 			return NotifyResult{}, fmt.Errorf("sns publish failed: %w", err)
 		}
+
+		logger.Info("デプロイ通知を送信しました",
+			"operation", RetryOperation,
+			"service", event.Service,
+			"cluster", event.Cluster,
+			"status", event.Status,
+			"messageId", aws.ToString(out.MessageId),
+		)
 
 		return NotifyResult{
 			MessageID: aws.ToString(out.MessageId),
